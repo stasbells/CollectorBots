@@ -1,63 +1,63 @@
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
-public class ResourceGenerator : ObjectPool
+[RequireComponent(typeof(ObjectPool))]
+public class ResourceGenerator : MonoBehaviour
 {
-    [SerializeField] private GameObject _resourceTamplate;
+    [SerializeField] private Base _base;
+    [SerializeField] private Resource _resourceTamplate;
     [SerializeField] private Transform _spawnDistance;
     [SerializeField] private float _unspawnRadius;
-    [SerializeField] private int _spawnPointsCount;
+    [SerializeField] private int _resourcesCount;
 
     private float _positionY = 0.5f;
+    private ObjectPool _objectPool;
 
     private void Awake()
     {
-        _capacity = _spawnPointsCount;
-        Initialize(_resourceTamplate);
+        _objectPool = GetComponent<ObjectPool>();
+        _objectPool.Initialize(_resourceTamplate.gameObject, _resourcesCount);
+    }
+
+    private void OnEnable()
+    {
+        _base.Delivered += _objectPool.ResetParent;
     }
 
     private void Update()
     {
-        StartSpawn();
-        ResetResources();
+        Spawn();
     }
 
-    private void StartSpawn()
+    private void OnDisable()
     {
-        while (TryGetObject(out GameObject resource))
-            RandomSpawn(resource);
+        _base.Delivered -= _objectPool.ResetParent;
     }
 
-    private void ResetResources()
+    private void Spawn()
     {
-        List<Resource> resources = FindObjectsByType<Resource>(FindObjectsSortMode.None).ToList();
-
-        foreach (var resource in resources)
-        {
-            if (resource.transform.parent == null)
-                ResetParentTransform(resource.gameObject);
-        }
+        while (_objectPool.TryGetObject(out GameObject resource))
+            SpawnInRandomPoint(resource);
     }
 
-    private bool CheckSpawnDistance(Vector3 spawnPoint)
+    private void SpawnInRandomPoint(GameObject resource)
     {
-        if (Vector3.Distance(spawnPoint, FindFirstObjectByType<Base>().transform.position) < _unspawnRadius)
-            return false;
+        Vector3 randomPoint = GetRandomPointOutsideRadius();
 
-        return true;
-    }
-
-    private void RandomSpawn(GameObject resource)
-    {
-        Vector3 randomPoint = GetRandomPoint();
-
-        if (GetActiveObjectsCount() < _spawnPointsCount && CheckSpawnDistance(randomPoint))
+        if (_objectPool.GetActiveObjectsCount() < _resourcesCount)
         {
             resource.transform.position = randomPoint;
-            resource.GetComponent<Resource>().ResetState();
             resource.SetActive(true);
         }
+    }
+
+    private Vector3 GetRandomPointOutsideRadius()
+    {
+        Vector3 spawnPoint = GetRandomPoint();
+
+        while (Vector3.Distance(spawnPoint, FindFirstObjectByType<Base>().transform.position) < _unspawnRadius)
+            spawnPoint = GetRandomPoint();
+
+        return spawnPoint;
     }
 
     private Vector3 GetRandomPoint()

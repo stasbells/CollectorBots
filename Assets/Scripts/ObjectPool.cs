@@ -6,42 +6,34 @@ public class ObjectPool : MonoBehaviour
 {
     [SerializeField] private GameObject _container;
 
-    private List<GameObject> _pool = new();
-    protected int _capacity;
+    public List<GameObject> Pool { get; private set; } = new();
 
-    protected void Initialize(GameObject gameObject)
+    public void Initialize(GameObject gameObject, int count)
     {
-        for (int i = 0; i < _capacity; i++)
+        for (int i = 0; i < count; i++)
         {
             GameObject spawned = Instantiate(gameObject, _container.transform);
 
             spawned.SetActive(false);
-            _pool.Add(spawned);
+
+            Pool.Add(spawned);
         }
     }
 
-    protected void ResetParentTransform(GameObject item)
+    public void ResetParent(GameObject item)
     {
         item.transform.parent = _container.transform;
     }
 
-    protected bool TryGetObject(out GameObject resault)
+    public bool TryGetObject(out GameObject resault)
     {
-        resault = _pool.FirstOrDefault(gameObject => gameObject.activeSelf == false);
+        resault = Pool.FirstOrDefault(gameObject => gameObject.activeSelf == false);
 
         return resault != null;
     }
 
-    protected int GetActiveObjectsCount()
+    public int GetActiveObjectsCount()
     {
-        int count = 0;
-
-        foreach (var item in _pool)
-        {
-            if (item.activeSelf == true)
-                count++;
-        }
-
-        return count;
+        return Pool.Count(item => item.activeSelf);
     }
 }

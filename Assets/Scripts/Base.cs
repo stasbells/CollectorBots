@@ -1,73 +1,63 @@
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using TMPro;
+using UnityEngine.Events;
 
-public class Base : ObjectPool
+[RequireComponent(typeof(Scaner))]
+[RequireComponent (typeof(ObjectPool))]
+public class Base : MonoBehaviour
 {
-    [SerializeField] private GameObject _unitTamplate;
-    [SerializeField] private int _unitCount;
-    [SerializeField] private float _secondsBetweenSpawn;
+    [SerializeField] private Unit _unitTamplate;
+    [SerializeField] private int _unitsCount;
     [SerializeField] private TMP_Text _text;
 
-    private float _elapsedTime = 0;
     private float _score;
 
+    private Scaner _scaner;
     private Transform _transform;
+    private ObjectPool _objectPool;
+
+    public event UnityAction<GameObject> Delivered;
 
     private void Awake()
     {
         _score = 0;
         _transform = transform;
-        _capacity = _unitCount;
-        Initialize(_unitTamplate);
-    }
-
-    private void Update()
-    {
-        OnGenerate();
+        _scaner = GetComponent<Scaner>();
+        _objectPool = GetComponent<ObjectPool>();
+        CriateUnits();
     }
 
     private void OnTriggerEnter(Collider other)
     {
         if (other.gameObject.TryGetComponent(out Unit unit) && unit.GetComponentInChildren<Resource>() != null)
         {
+            Delivered?.Invoke(unit.Target.gameObject);
             unit.FinishCollecting();
 
             _text.text = (++_score).ToString();
         }
     }
 
-    private Resource GetNearestResource()
+    private void Update()
     {
-        List<Resource> resources = FindObjectsByType<Resource>(FindObjectsSortMode.None).ToList();
-        Resource nearestResource = resources.Find(resource => resource.IsFree && resource.gameObject.activeSelf);
+        Spawn();
+    }
 
-        foreach (Resource resource in resources)
+    public void Spawn()
+    {
+        if (_objectPool.TryGetObject(out GameObject unit))
         {
-            if (Vector3.Distance(resource.transform.position, _transform.position) < Vector3.Distance(nearestResource.transform.position, _transform.position) && resource.IsFree)
-                nearestResource = resource;
+            unit.transform.position = _transform.position;
+            unit.GetComponent<Unit>().SetTarget(_scaner.GetNearestResource());
+            unit.SetActive(true);
         }
-
-        nearestResource.Reserv();
-
-        return nearestResource;
     }
 
-    public void OnGenerate()
+    private void CriateUnits()
     {
-        _elapsedTime += Time.deltaTime;
+        _objectPool.Initialize(_unitTamplate.gameObject, _unitsCount);
 
-        if (TryGetObject(out GameObject unit) && _elapsedTime > _secondsBetweenSpawn)
-            Spawn(unit);
-    }
-
-    private void Spawn(GameObject unit)
-    {
-        _elapsedTime = 0;
-
-        unit.transform.position = transform.position;
-        unit.GetComponent<Unit>().SetTarget(GetNearestResource());
-        unit.SetActive(true);
+        foreach(var unit in _objectPool.Pool)
+            unit.GetComponent<Unit>().SetHomeBase(gameObject.GetComponent<Base>());
     }
 }
