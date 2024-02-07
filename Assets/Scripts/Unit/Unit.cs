@@ -1,8 +1,13 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 [RequireComponent(typeof(UnitMover))]
 public class Unit : MonoBehaviour
 {
+    [SerializeField] private Base _baseTamplate;
+    [SerializeField] private LayerMask _freeResource;
+
     private const int FreeResource = 6;
     private const int ReserveResource = 7;
 
@@ -11,22 +16,26 @@ public class Unit : MonoBehaviour
 
     public Base HomeBase { get; private set; }
     public Resource Target { get; private set; }
+    public Flag Flag { get; private set; }
 
     private void Awake()
     {
-        _mover = GetComponent<UnitMover>();
         _transform = transform;
+        _mover = GetComponent<UnitMover>();
     }
 
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.TryGetComponent(out Resource resource) && resource == Target)
             Pack(resource);
+
+        if (collision.gameObject.TryGetComponent(out Flag flag) && flag == Flag)
+            CriateBase();
     }
 
     private void Update()
     {
-        if (Target != null)
+        if (Target != null || Flag != null)
             _mover.Move();
     }
 
@@ -41,12 +50,9 @@ public class Unit : MonoBehaviour
         HomeBase = homeBase;
     }
 
-    private void Pack(Resource resource)
+    public void SetFlag(Flag flag)
     {
-        float bagPositionY = 1.1f;
-
-        resource.transform.position = new(_transform.position.x, bagPositionY, _transform.position.z);
-        resource.transform.parent = _transform;
+        Flag = flag;
     }
 
     public void FinishCollecting()
@@ -56,5 +62,34 @@ public class Unit : MonoBehaviour
         Target = null;
 
         gameObject.SetActive(false);
+    }
+
+    private void CriateBase()
+    {
+        Flag.Destroy();
+        ClearPlace();
+
+        Base newBase = Instantiate(_baseTamplate, _transform.position, Quaternion.identity);
+
+        SetHomeBase(newBase);
+        newBase.Register(this);
+        gameObject.SetActive(false);
+    }
+
+    private void Pack(Resource resource)
+    {
+        float bagPositionY = 1.1f;
+
+        resource.transform.position = new(_transform.position.x, bagPositionY, _transform.position.z);
+        resource.transform.parent = _transform;
+    }
+
+    private void ClearPlace()
+    {
+        int radius = 3;
+        Collider[] resources = Physics.OverlapSphere(_transform.position, radius, _freeResource);
+
+        foreach(Collider resource in resources)
+            resource.gameObject.SetActive(false);
     }
 }

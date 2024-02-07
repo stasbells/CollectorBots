@@ -19,10 +19,14 @@ public class UnitMover : MonoBehaviour
         if (_move != null)
             StopCoroutine(_move);
 
-        _move = StartCoroutine(MoveTo());
+        if (GetComponent<Unit>().Target != null)
+            _move = StartCoroutine(MoveToResourse());
+
+        if (GetComponent<Unit>().Flag != null)
+            _move = StartCoroutine(MoveToFlag());
     }
 
-    private IEnumerator MoveTo()
+    private IEnumerator MoveToResourse()
     {
         Transform target = GetComponent<Unit>().Target.transform;
         Transform homeBase = GetComponent<Unit>().HomeBase.transform;
@@ -33,6 +37,20 @@ public class UnitMover : MonoBehaviour
                 _transform.LookAt(target);
             else
                 _transform.LookAt(homeBase);
+
+            _transform.position += _transform.forward * _speed * Time.deltaTime;
+
+            yield return null;
+        }
+    }
+
+    private IEnumerator MoveToFlag()
+    {
+        Transform flag = GetComponent<Unit>().Flag.transform;
+
+        while (flag != null)
+        {
+            _transform.LookAt(flag);
 
             _transform.position += _transform.forward * _speed * Time.deltaTime;
 

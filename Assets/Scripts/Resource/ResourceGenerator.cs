@@ -3,13 +3,14 @@ using UnityEngine;
 [RequireComponent(typeof(ObjectPool))]
 public class ResourceGenerator : MonoBehaviour
 {
-    [SerializeField] private Base _base;
     [SerializeField] private Resource _resourceTamplate;
     [SerializeField] private Transform _spawnDistance;
     [SerializeField] private float _unspawnRadius;
     [SerializeField] private int _resourcesCount;
+    [SerializeField] private LayerMask _base;
 
-    private float _positionY = 0.5f;
+    private const float PositionY = 0.5f;
+
     private ObjectPool _objectPool;
 
     private void Awake()
@@ -18,19 +19,14 @@ public class ResourceGenerator : MonoBehaviour
         _objectPool.Initialize(_resourceTamplate.gameObject, _resourcesCount);
     }
 
-    private void OnEnable()
-    {
-        _base.Delivered += _objectPool.ResetParent;
-    }
-
     private void Update()
     {
         Spawn();
     }
 
-    private void OnDisable()
+    public void ResetParent(GameObject item)
     {
-        _base.Delivered -= _objectPool.ResetParent;
+        item.transform.parent = _objectPool.Container;
     }
 
     private void Spawn()
@@ -54,15 +50,15 @@ public class ResourceGenerator : MonoBehaviour
     {
         Vector3 spawnPoint = GetRandomPoint();
 
-        while (Vector3.Distance(spawnPoint, FindFirstObjectByType<Base>().transform.position) < _unspawnRadius)
+        while (Physics.OverlapSphere(spawnPoint, _unspawnRadius, _base).Length != 0)
             spawnPoint = GetRandomPoint();
-
+        
         return spawnPoint;
     }
 
     private Vector3 GetRandomPoint()
     {
         return new Vector3(Random.Range(-_spawnDistance.position.x, _spawnDistance.position.x),
-            _positionY, Random.Range(-_spawnDistance.position.z, _spawnDistance.position.z));
+            PositionY, Random.Range(-_spawnDistance.position.z, _spawnDistance.position.z));
     }
 }

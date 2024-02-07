@@ -149,7 +149,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7b3f268b2c2cd7048b53c50e22748e54, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _freeResource1:
+  _baseTamplate: {fileID: 5977754258957063368, guid: 879e979317444ff4a8cabeca4769315a, type: 3}
+  _freeResource:
     serializedVersion: 2
     m_Bits: 64
 --- !u!114 &-6790526839015265742
